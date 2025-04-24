@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admit Card Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        .page-break {
+            page-break-after: always;
+            margin-bottom: 50px;
+            padding-bottom: 20px;
+        }
+        .admit-card-page {
+            width: 210mm;
+            min-height: 297mm;
+            padding: 15mm;
+            margin: 0 auto;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold text-center mb-8 text-blue-600">Admit Card Generator</h1>
+        
+        <div class="bg-white rounded-lg shadow-lg p-6 max-w-4xl mx-auto">
+            <form id="admitForm" class="space-y-6">
+                <!-- Institution Details -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-gray-700 font-medium mb-2">Institution Logo</label>
+                        <div class="flex items-center space-x-4">
+                            <input type="file" id="instituteLogo" accept="image/*" class="hidden" onchange="handleLogoUpload(event)">
+                            <button type="button" onclick="document.getElementById('instituteLogo').click()" class="bg-blue-100 text-blue-600 px-4 py-2 rounded-md hover:bg-blue-200 transition">
+                                Upload Logo
+                            </button>
+                            <span id="logoFileName" class="text-gray-500">No file chosen</span>
+                        </div>
+                        <div id="logoPreview" class="mt-2 w-24 h-24 border border-gray-200 flex items-center justify-center hidden">
+                            <!-- Logo preview will appear here -->
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-gray-700 font-medium mb-2">Student Photo</label>
+                        <div class="flex items-center space-x-4">
+                            <input type="file" id="studentImage" accept="image/*" class="hidden" onchange="handlePhotoUpload(event)">
+                            <button type="button" onclick="document.getElementById('studentImage').click()" class="bg-blue-100 text-blue-600 px-4 py-2 rounded-md hover:bg-blue-200 transition">
+                                Upload Photo
+                            </button>
+                            <span id="photoFileName" class="text-gray-500">No file chosen</span>
+                        </div>
+                        <div id="photoPreview" class="mt-2 w-24 h-24 border border-gray-200 flex items-center justify-center hidden">
+                            <!-- Photo preview will appear here -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Basic Information -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label for="schoolName" class="block text-gray-700 font-medium mb-2">Institution Name</label>
+                        <input type="text" id="schoolName" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                    </div>
+                    <div>
+                        <label for="studentName" class="block text-gray-700 font-medium mb-2">Student Name</label>
+                        <input type="text" id="studentName" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                    </div>
+                    <div>
+                        <label for="fatherName" class="block text-gray-700 font-medium mb-2">Father's Name</label>
+                        <input type="text" id="fatherName" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label for="rollNumber" class="block text-gray-700 font-medium mb-2">Roll Number</label>
+                        <input type="text" id="rollNumber" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                    </div>
+                    <div>
+                        <label for="className" class="block text-gray-700 font-medium mb-2">Class/Grade</label>
+                        <input type="text" id="className" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                    </div>
+                    <div>
+                        <label for="academicYear" class="block text-gray-700 font-medium mb-2">Academic Year</label>
+                        <input type="text" id="academicYear" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                    </div>
+                </div>
+                
+                <!-- Subjects Table -->
+                <div>
+                    <label class="block text-gray-700 font-medium mb-2">Subjects & Marks</label>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full bg-white border border-gray-200">
+                            <thead>
+                                <tr class="bg-gray-100">
+                                    <th class="py-2 px-4 border-b">Subject</th>
+                                    <th class="py-2 px-4 border-b">Obtained Marks</th>
+                                    <th class="py-2 px-4 border-b">Total Marks</th>
+                                    <th class="py-2 px-4 border-b">Grade</th>
+                                    <th class="py-2 px-4 border-b">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="subjectsTable">
+                                <tr>
+                                    <td class="py-2 px-4 border-b"><input type="text" class="w-full px-2 py-1 border border-gray-300 rounded" placeholder="e.g., Mathematics" required></td>
+                                    <td class="py-2 px-4 border-b"><input type="number" class="w-full px-2 py-1 border border-gray-300 rounded obtained-marks" placeholder="85" required></td>
+                                    <td class="py-2 px-4 border-b"><input type="number" class="w-full px-2 py-1 border border-gray-300 rounded total-marks" placeholder="100" required></td>
+                                    <td class="py-2 px-4 border-b"><input type="text" class="w-full px-2 py-1 border border-gray-300 rounded" placeholder="A+" required></td>
+                                    <td class="py-2 px-4 border-b"><button type="button" onclick="removeRow(this)" class="text-red-500 hover:text-red-700">Remove</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <button type="button" onclick="addSubjectRow()" class="mt-2 bg-blue-100 text-blue-600 px-4 py-2 rounded-md hover:bg-blue-200 transition">
+                            + Add Subject
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Additional Information -->
+                <div>
+                    <label for="additionalInfo" class="block text-gray-700 font-medium mb-2">Additional Information</label>
+                    <textarea id="additionalInfo" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Any additional instructions or information..."></textarea>
+                </div>
+                
+                <!-- Generate Button -->
+                <div class="flex justify-center">
+                    <button type="button" onclick="generateAdmitCard()" class="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 transition font-medium">
+                        Generate Admit Card
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Admit Card Container (Hidden until generated) -->
+    <div id="admitCardContainer" class="hidden fixed -left-[10000px]">
+        <!-- Template will be inserted here by JavaScript -->
+    </div>
+
+    <script>
+        // Global variables to store image data
+        let logoDataUrl = '';
+        let photoDataUrl = '';
+        
+        // Handle logo upload
+        function handleLogoUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                document.getElementById('logoFileName').textContent = file.name;
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    logoDataUrl = e.target.result;
+                    const preview = document.getElementById('logoPreview');
+                    preview.innerHTML = `<img src="${e.target.result}" class="w-full h-full object-contain">`;
+                    preview.classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+        
+        // Handle photo upload
+        function handlePhotoUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                document.getElementById('photoFileName').textContent = file.name;
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    photoDataUrl = e.target.result;
+                    const preview = document.getElementById('photoPreview');
+                    preview.innerHTML = `<img src="${e.target.result}" class="w-full h-full object-contain">`;
+                    preview.classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // Add/Remove subject rows
+        function addSubjectRow() {
+            const table = document.getElementById('subjectsTable');
+            const newRow = document.createElement('tr');
+            newRow.innerHTML = `
+                <td class="py-2 px-4 border-b"><input type="text" class="w-full px-2 py-1 border border-gray-300 rounded" placeholder="e.g., Mathematics" required></td>
+                <td class="py-2 px-4 border-b"><input type="number" class="w-full px-2 py-1 border border-gray-300 rounded obtained-marks" placeholder="85" required></td>
+                <td class="py-2 px-4 border-b"><input type="number" class="w-full px-2 py-1 border border-gray-300 rounded total-marks" placeholder="100" required></td>
+                <td class="py-2 px-4 border-b"><input type="text" class="w-full px-2 py-1 border border-gray-300 rounded" placeholder="A+" required></td>
+                <td class="py-2 px-4 border-b"><button type="button" onclick="removeRow(this)" class="text-red-500 hover:text-red-700">Remove</button></td>
+            `;
+            table.appendChild(newRow);
+        }
+
+        function removeRow(button) {
+            const row = button.closest('tr');
+            if (document.getElementById('subjectsTable').rows.length > 1) {
+                row.remove();
+            } else {
+                alert("You need at least one subject!");
+            }
+        }
+
+        // Calculate grade based on percentage
+        function calculateGrade(percentage) {
+            if (percentage >= 90) return 'A+';
+            if (percentage >= 80) return 'A';
+            if (percentage >= 70) return 'B';
+            if (percentage >= 60) return 'C';
+            if (percentage >= 50) return 'D';
+            return 'F';
+        }
+
+        // Create a single admit card page
+        function createAdmitCardPage(studentData, pageNumber, totalPages, subjects) {
+            const page = document.createElement('div');
+            page.className = 'admit-card-page bg-white border-2 border-gray-200 rounded-lg';
+            if (pageNumber < totalPages) {
+                page.classList.add('page-break');
+            }
+            
+            // Calculate available height for subjects (approximately 2/3 of page)
+            const maxSubjectsPerPage = 15; // Adjust based on your layout
+            
+            const subjectsHtml = subjects.map(sub => `
+                <tr>
+                    <td class="py-2 px-4 border">${sub.subject}</td>
+                    <td class="py-2 px-4 border">${sub.obtained}</td>
+                    <td class="py-2 px-4 border">${sub.total}</td>
+                    <td class="py-2 px-4 border">${sub.grade}</td>
+                </tr>
+            `).join('');
+            
+            page.innerHTML = `
+                <div class="flex justify-between items-start mb-6">
+                    <div class="template-logo-container w-24 h-24 border border-gray-200 flex items-center justify-center">
+                        ${studentData.logoHtml || '<span class="text-gray-400">No Logo</span>'}
+                    </div>
+                    <div class="text-center">
+                        <h2 class="template-school-name text-2xl font-bold">${studentData.schoolName}</h2>
+                        <p class="template-academic-year text-lg mt-1">${studentData.academicYear}</p>
+                    </div>
+                    <div class="template-photo-container w-24 h-24 border border-gray-200 flex items-center justify-center">
+                        ${studentData.photoHtml || '<span class="text-gray-400">No Photo</span>'}
+                    </div>
+                </div>
+                
+                <h1 class="text-3xl font-bold text-center mb-8 underline">Admit Card</h1>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                    <div>
+                        <p class="font-medium">Student Name: <span class="font-normal">${studentData.studentName}</span></p>
+                        <p class="font-medium">Father's Name: <span class="font-normal">${studentData.fatherName}</span></p>
+                        <p class="font-medium">Roll Number: <span class="font-normal">${studentData.rollNumber}</span></p>
+                    </div>
+                    <div>
+                        <p class="font-medium">Class: <span class="font-normal">${studentData.className}</span></p>
+                        <p class="font-medium">Academic Year: <span class="font-normal">${studentData.academicYear}</span></p>
+                        <p class="font-medium">Date of Issue: <span class="font-normal">${studentData.issueDate}</span></p>
+                    </div>
+                </div>
+                
+                <div class="mb-8">
+                    <h3 class="text-xl font-bold mb-4 border-b pb-2">Subjects & Marks (Page ${pageNumber} of ${totalPages})</h3>
+                    <table class="w-full border-collapse">
+                        <thead>
+                            <tr class="bg-gray-100">
+                                <th class="py-2 px-4 border">Subject</th>
+                                <th class="py-2 px-4 border">Obtained Marks</th>
+                                <th class="py-2 px-4 border">Total Marks</th>
+                                <th class="py-2 px-4 border">Grade</th>
+                            </tr>
+                        </thead>
+                        <tbody class="template-subjects-table">
+                            ${subjectsHtml}
+                        </tbody>
+                    </table>
+                </div>
+                
+                ${pageNumber === totalPages ? `
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 bg-gray-50 p-4 rounded-lg">
+                    <div>
+                        <h3 class="text-lg font-bold mb-2">Total Marks</h3>
+                        <p class="font-medium">Obtained: <span class="font-normal">${studentData.totalObtained}</span></p>
+                        <p class="font-medium">Maximum: <span class="font-normal">${studentData.totalMaximum}</span></p>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold mb-2">Performance</h3>
+                        <p class="font-medium">Percentage: <span class="font-normal">${studentData.percentage}%</span></p>
+                        <p class="font-medium">Overall Grade: <span class="font-normal">${studentData.overallGrade}</span></p>
+                    </div>
+                </div>
+                
+                <div class="mb-8">
+                    <h3 class="text-xl font-bold mb-2 border-b pb-2">Additional Information</h3>
+                    <p class="text-gray-700">${studentData.additionalInfo}</p>
+                </div>
+                
+                <div class="flex justify-between items-center mt-8">
+                    <div class="text-center">
+                        <p class="border-t pt-4 w-32 mx-auto">Student Signature</p>
+                        <p class="text-sm mt-1">Date: <span>${studentData.issueDate}</span></p>
+                    </div>
+                    <div class="text-center">
+                        <p class="border-t pt-4 w-32 mx-auto">Authority Signature</p>
+                        <p class="text-sm mt-1">Date: <span>${studentData.issueDate}</span></p>
+                    </div>
+                </div>
+                ` : ''}
+            `;
+            
+            return page;
+        }
+
+        // Generate Admit Card
+        async function generateAdmitCard() {
+            // Validate form
+            const requiredFields = ['schoolName', 'studentName', 'fatherName', 'rollNumber', 'className', 'academicYear'];
+            for (const fieldId of requiredFields) {
+                const field = document.getElementById(fieldId);
+                if (!field.value.trim()) {
+                    alert(`Please fill in ${field.labels[0].textContent}`);
+                    field.focus();
+                    return;
+                }
+            }
+            
+            // Validate at least one subject has all fields
+            let hasValidSubject = false;
+            document.querySelectorAll('#subjectsTable tr').forEach(row => {
+                const inputs = row.querySelectorAll('input');
+                if (Array.from(inputs).every(input => input.value.trim())) {
+                    hasValidSubject = true;
+                }
+            });
+            
+            if (!hasValidSubject) {
+                alert("Please fill in at least one complete subject row");
+                return;
+            }
+            
+            // Prepare student data
+            const today = new Date();
+            const formattedDate = today.toLocaleDateString();
+            
+            const studentData = {
+                schoolName: document.getElementById('schoolName').value,
+                studentName: document.getElementById('studentName').value,
+                fatherName: document.getElementById('fatherName').value,
+                rollNumber: document.getElementById('rollNumber').value,
+                className: document.getElementById('className').value,
+                academicYear: document.getElementById('academicYear').value,
+                issueDate: formattedDate,
+                additionalInfo: document.getElementById('additionalInfo').value,
+                logoHtml: logoDataUrl ? `<img src="${logoDataUrl}" class="w-full h-full object-contain">` : '',
+                photoHtml: photoDataUrl ? `<img src="${photoDataUrl}" class="w-full h-full object-contain">` : '',
+                subjects: [],
+                totalObtained: 0,
+                totalMaximum: 0,
+                percentage: 0,
+                overallGrade: '-'
+            };
+            
+            // Process subjects
+            document.querySelectorAll('#subjectsTable tr').forEach(row => {
+                const cells = row.querySelectorAll('td input');
+                if (cells.length >= 4 && cells[0].value.trim()) {
+                    const subject = cells[0].value;
+                    const obtained = parseFloat(cells[1].value) || 0;
+                    const total = parseFloat(cells[2].value) || 0;
+                    const grade = cells[3].value;
+                    
+                    studentData.subjects.push({
+                        subject,
+                        obtained,
+                        total,
+                        grade
+                    });
+                    
+                    studentData.totalObtained += obtained;
+                    studentData.totalMaximum += total;
+                }
+            });
+            
+            // Calculate percentage and overall grade
+            studentData.percentage = studentData.totalMaximum > 0 ? 
+                Math.round((studentData.totalObtained / studentData.totalMaximum) * 100) : 0;
+            studentData.overallGrade = calculateGrade(studentData.percentage);
+            
+            // Split subjects into chunks for pagination (15 subjects per page)
+            const subjectsPerPage = 15;
+            const totalPages = Math.ceil(studentData.subjects.length / subjectsPerPage);
+            
+            // Clear and prepare the container
+            const container = document.getElementById('admitCardContainer');
+            container.innerHTML = '';
+            container.classList.remove('hidden');
+            
+            // Create pages
+            for (let i = 0; i < totalPages; i++) {
+                const startIdx = i * subjectsPerPage;
+                const endIdx = startIdx + subjectsPerPage;
+                const pageSubjects = studentData.subjects.slice(startIdx, endIdx);
+                
+                container.appendChild(createAdmitCardPage(
+                    studentData, 
+                    i + 100, 
+                    totalPages,
+                    pageSubjects
+                ));
+            }
+            
+            // Generate PDF
+            await generatePDF();
+            
+            // Hide the container after PDF generation
+            container.classList.add('hidden');
+        }
+
+        // Generate PDF from template
+        async function generatePDF() {
+            const { jsPDF } = window.jspdf;
+            const container = document.getElementById('admitCardContainer');
+            const pages = container.querySelectorAll('.admit-card-page');
+            
+            // Create a new PDF instance
+            const pdf = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: 'a4'
+            });
+            
+            // Generate each page
+            for (let i = 0; i < pages.length; i++) {
+                if (i > 0) {
+                    pdf.addPage();
+                }
+                
+                const page = pages[i];
+                
+                // Set higher scale for better quality
+                const canvas = await html2canvas(page, {
+                    scale: 3,
+                    logging: false,
+                    useCORS: true,
+                    allowTaint: true,
+                    scrollX: 0,
+                    scrollY: 0,
+                    windowWidth: page.scrollWidth,
+                    windowHeight: page.scrollHeight
+                });
+                
+                const imgData = canvas.toDataURL('image/png', 1.0);
+                const imgWidth = 210; // A4 width in mm
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                
+                // Center the content on the page
+                const x = 0;
+                const y = 0;
+                
+                pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
+            }
+            
+            // Save the PDF
+            pdf.save('admit-card.pdf');
+        }
+    </script>
+</body>
+</html>
